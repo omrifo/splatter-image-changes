@@ -793,4 +793,57 @@ class GaussianSplatPredictor(nn.Module):
         out_dict = self.multi_view_union(out_dict, B, N_views)
         out_dict = self.make_contiguous(out_dict)
 
+        # import matplotlib.pyplot as plt 
+        # opacity = opacity.cpu().numpy().reshape(128, 128)
+        # plt.title("Opacity")
+        # plt.imshow(opacity, cmap='gray')
+        # plt.colorbar()
+        # plt.imsave("opacity.png", opacity)
+
+        # print("opacity map saved as opacity.png")
+
+        # features_rest = features_rest.cpu().numpy().reshape(128, 128, 3, 3)  # Shape [128, 128, 3, 3]
+        # for i in range(3):
+        #   features_image = features_rest[..., i, :]
+
+        #   # Normalize the data to [0, 1] range if necessary
+        #   features_image = (features_image - features_image.min()) / (features_image.max() - features_image.min())
+
+        # plt.figure(figsize=(6, 6))
+        # plt.title(f"Features Rest Set {i+1}")
+        # plt.imshow(features_image)  # Shape [128, 128, 3] - treated as RGB
+        # plt.title("RGB")
+        # plt.colorbar()
+        # plt.imsave("RGB.png", features_image)
+
+        # print("RGB map saved as RGB.png")
+
+        # xyz = out_dict["xyz"].cpu().numpy().reshape(128, 128, 3)  # Shape [128, 128, 3]
+
+        # # Create a combined figure with three subplots for X, Y, Z components
+        # plt.figure(figsize=(15, 5))
+
+        # # X Component
+        # plt.subplot(1, 3, 1)
+        # plt.title("X Component")
+        # plt.imshow(xyz[..., 0], cmap='coolwarm')  # Choose a colormap that enhances contrast
+        # plt.colorbar()
+
+        # # Y Component
+        # plt.subplot(1, 3, 2)
+        # plt.title("Y Component")
+        # plt.imshow(xyz[..., 1], cmap='coolwarm')
+        # plt.colorbar()
+
+        # # Z Component
+        # plt.subplot(1, 3, 3)
+        # plt.title("Z Component")
+        # plt.imshow(xyz[..., 2], cmap='coolwarm')
+        # plt.colorbar()
+
+        # # Display the figure with all three components
+        # plt.tight_layout()  # Adjust layout for better spacing
+        # print("XYZ map saved as xyz.png")
+        # plt.savefig("xyz_components.png")
+
         return out_dict
