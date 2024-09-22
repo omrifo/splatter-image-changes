@@ -681,6 +681,27 @@ class GaussianSplatPredictor(nn.Module):
         pos = ray_dirs_xy * depth + offset
 
         return pos
+    
+    def save_depth_images_to_drive(self, depth, batch_size, save_dir):
+
+        import matplotlib.pyplot as plt
+        import os
+        # Create the directory if it doesn't exist
+        os.makedirs(save_dir, exist_ok=True)
+
+        # Loop through each image in the batch
+        for i in range(batch_size):
+            depth_map = depth[i, 0].detach().cpu().numpy()  # Take the first channel of each image
+
+            # Normalize the depth map to 0-1 range for visualization
+            depth_map_normalized = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min())
+
+            # Construct the filename
+            filename = os.path.join(save_dir, f"depth_map_{self.example_index}.png")
+            self.example_index += 1
+            # Save the depth map using matplotlib
+            plt.imsave(filename, depth_map_normalized, cmap='plasma')
+            print(f"Depth map saved as {filename}")
 
     def forward(self, x, 
                 source_cameras_view_to_world, 
@@ -845,5 +866,9 @@ class GaussianSplatPredictor(nn.Module):
         # plt.tight_layout()  # Adjust layout for better spacing
         # print("XYZ map saved as xyz.png")
         # plt.savefig("xyz_components.png")
+
+        # save_dir = '/content/drive/MyDrive/CV_lab/depth_training_images'  # Specify the path to Google Drive
+        # batch_size = depth.shape[0]  # Get the batch size from the depth tensor
+        # self.save_depth_images_to_drive(depth, batch_size, save_dir)
 
         return out_dict
