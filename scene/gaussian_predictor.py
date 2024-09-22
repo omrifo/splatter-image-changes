@@ -499,7 +499,7 @@ class GaussianSplatPredictor(nn.Module):
             assert not cfg.model.network_with_offset, "Can only have one network"
 
         self.init_ray_dirs()
-
+        self.example_index=0
         # Activation functions for different parameters
         self.depth_act = nn.Sigmoid()
         self.scaling_activation = torch.exp
