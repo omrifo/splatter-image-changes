@@ -694,8 +694,8 @@ class GaussianSplatPredictor(nn.Module):
             depth_map = depth[i, 0].detach().cpu().numpy()  # Take the first channel of each image
 
             # Normalize the depth map to 0-1 range for visualization
-            depth_map_normalized = (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min())
-
+            depth_map_normalized = 255*(depth_map - depth_map.min()) / (depth_map.max() - depth_map.min())
+            depth_map_normalized = depth_map_normalized.astype(np.uint8)
             # Construct the filename
             filename = os.path.join(save_dir, f"depth_map_{self.example_index}.png")
             self.example_index += 1
