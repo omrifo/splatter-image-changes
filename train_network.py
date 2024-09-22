@@ -155,8 +155,17 @@ def main(cfg: DictConfig):
     gaussian_predictor.train()
 
     print("Beginning training")
+    print("resolution is: ", cfg.data.training_resolution)
+    cfg.opt.iterations = min(5001, cfg.opt.iterations)
+    print("num iterations: ", cfg.opt.iterations)
+    print("learning rate: ", cfg.opt.base_lr) 
     first_iter += 1
     iteration = first_iter
+
+    google_drive_dir = "/content/drive/MyDrive/Colab_Notebooks/computer_vision_project/"
+    os.makedirs(google_drive_dir, exist_ok=True)
+
+    print_mod = 50 # print data mod this number of iterations
 
     for num_epoch in range((cfg.opt.iterations + 1 - first_iter)// len(dataloader) + 1):
         dataloader.sampler.set_epoch(num_epoch)        
@@ -164,7 +173,8 @@ def main(cfg: DictConfig):
         for data in dataloader:
             iteration += 1
 
-            print("starting iteration {} on process {}".format(iteration, fabric.global_rank))
+            if iteration % print_mod == 0:
+                print("starting iteration {} on process {}".format(iteration, fabric.global_rank))
 
             # =============== Prepare input ================
             rot_transform_quats = data["source_cv2wT_quat"][:, :cfg.data.input_images]
@@ -241,18 +251,21 @@ def main(cfg: DictConfig):
                 total_loss = total_loss + big_gaussian_reg_loss + small_gaussian_reg_loss
 
             assert not total_loss.isnan(), "Found NaN loss!"
-            print("finished forward {} on process {}".format(iteration, fabric.global_rank))
+            if iteration % print_mod ==0:
+                print("finished forward {} on process {}".format(iteration, fabric.global_rank))
             fabric.backward(total_loss)
 
             # ============ Optimization ===============
             optimizer.step()
             optimizer.zero_grad()
-            print("finished opt {} on process {}".format(iteration, fabric.global_rank))
+            if iteration % print_mod ==0: 
+                print("finished opt {} on process {}".format(iteration, fabric.global_rank))
 
             if cfg.opt.ema.use and fabric.is_global_zero:
                 ema.update()
 
-            print("finished iteration {} on process {}".format(iteration, fabric.global_rank))
+            if iteration % print_mod ==0:
+                print("finished iteration {} on process {}".format(iteration, fabric.global_rank))
 
             gaussian_predictor.eval()
 
@@ -372,7 +385,10 @@ def main(cfg: DictConfig):
                 else:
                     ckpt_save_dict["model_state_dict"] = gaussian_predictor.state_dict() 
                 torch.save(ckpt_save_dict, os.path.join(vis_dir, fname_to_save))
+            
+                torch.save(ckpt_save_dict, os.path.join(google_drive_dir, fname_to_save))
 
+                print(f"Model saved locally and to Google Drive at iteration {iteration}")
             gaussian_predictor.train()
 
     wandb_run.finish()
