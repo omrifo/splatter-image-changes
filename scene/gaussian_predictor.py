@@ -871,7 +871,7 @@ class GaussianSplatPredictor(nn.Module):
         # print("XYZ map saved as xyz.png")
         # plt.savefig("xyz_components.png")
 
-        # save_dir = '/content/drive/MyDrive/CV_lab/depth_training_images'  # Specify the path to Google Drive
+        # save_dir = '/content/drive/MyDrive/Colab_Notebooks/computer_vision_project/depth_training_images'  # Specify the path to Google Drive
         # batch_size = depth.shape[0]  # Get the batch size from the depth tensor
         # self.save_depth_images_to_drive(depth, batch_size, save_dir)
 

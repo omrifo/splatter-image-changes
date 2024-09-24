@@ -21,7 +21,7 @@ data:
   white_background: true
   origin_distances: false
 opt:
-  iterations: 5001
+  iterations: 20001
   base_lr: 6.34584421e-05
   batch_size: 32
   betas:
