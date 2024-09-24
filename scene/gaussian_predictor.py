@@ -685,6 +685,8 @@ class GaussianSplatPredictor(nn.Module):
     def save_depth_images_to_drive(self, depth, batch_size, save_dir):
 
         import matplotlib.pyplot as plt
+        import numpy as np
+        from PIL import Image
         import os
         # Create the directory if it doesn't exist
         os.makedirs(save_dir, exist_ok=True)
@@ -694,14 +696,16 @@ class GaussianSplatPredictor(nn.Module):
             depth_map = depth[i, 0].detach().cpu().numpy()  # Take the first channel of each image
 
             # Normalize the depth map to 0-1 range for visualization
-            depth_map_normalized = 255*(depth_map - depth_map.min()) / (depth_map.max() - depth_map.min())
-            depth_map_normalized = depth_map_normalized.astype(np.uint8)
+            depth_map_normalized = 255 * (depth_map - depth_map.min()) / (depth_map.max() - depth_map.min())
+            depth_map_normalized = depth_map_normalized.astype(np.uint8)  # Convert to 8-bit values
+
             # Construct the filename
             filename = os.path.join(save_dir, f"depth_map_{self.example_index}.png")
             self.example_index += 1
             # Save the depth map using matplotlib
-            plt.imsave(filename, depth_map_normalized, cmap='plasma')
+            Image.fromarray(depth_map_normalized).save(filename)
             print(f"Depth map saved as {filename}")
+
 
     def forward(self, x, 
                 source_cameras_view_to_world, 
