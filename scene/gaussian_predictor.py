@@ -91,6 +91,17 @@ class Conv2d(torch.nn.Module):
             if self.down:
                 x = torch.nn.functional.conv2d(x, f.tile([self.in_channels, 1, 1, 1]), groups=self.in_channels, stride=2, padding=f_pad)
             if w is not None:
+                # changing the channels size according to x.shape[1] to match the dimensions of additional depth input. 
+                if x.shape[1] == 6:
+                    conv = nn.Conv2d(in_channels=6, out_channels=3, kernel_size=1, stride=1, padding=0, bias=False).to(x.device)
+                    x = conv(x)
+                elif x.shape[1] == 3:
+                    conv = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=1, stride=1, padding=0, bias=False).to(x.device)
+                    x = conv(x)
+                if(x.shape[1] == 32):
+                    expand_channels = nn.Conv2d(in_channels=32, out_channels=128, kernel_size=1).to(x.device)
+                    x = expand_channels(x)
+    
                 x = torch.nn.functional.conv2d(x, w, padding=w_pad)
         if b is not None:
             x = x.add_(b.reshape(1, -1, 1, 1))
@@ -108,6 +119,15 @@ class GroupNorm(torch.nn.Module):
         self.bias = torch.nn.Parameter(torch.zeros(num_channels))
 
     def forward(self, x, N_views_xa=1):
+        # making sure that in_channels output is divisible by 32
+        if x.shape[1] == 12:
+            conv = torch.nn.Conv2d(in_channels=12, out_channels=32, kernel_size=(1,1)).to(x.device)
+            x = conv(x)
+        # Checking the weight and bias sizes match the input channels of 32
+        if self.weight.size(0) != x.size(1):
+            self.weight = torch.nn.Parameter(torch.ones(x.size(1)).to(x.device))
+        if self.bias.size(0) != x.size(1):
+            self.bias = torch.nn.Parameter(torch.zeros(x.size(1)).to(x.device))
         x = torch.nn.functional.group_norm(x, num_groups=self.num_groups, weight=self.weight.to(x.dtype), bias=self.bias.to(x.dtype), eps=self.eps)
         return x.to(memory_format=torch.channels_last)
 
@@ -711,10 +731,13 @@ class GaussianSplatPredictor(nn.Module):
                 source_cameras_view_to_world, 
                 source_cv2wT_quat=None,
                 focals_pixels=None,
+                depth_input=None,
                 activate_output=True):
 
         B = x.shape[0]
         N_views = x.shape[1]
+        if depth_input is not None:
+            depth_input = depth_input.reshape(B * N_views, *depth_input.shape[2:])
         # UNet attention will reshape outputs so that there is cross-view attention
         if self.cfg.model.cross_view_attention:
             N_views_xa = N_views
@@ -735,13 +758,18 @@ class GaussianSplatPredictor(nn.Module):
             assert focals_pixels is None, "Unexpected argument for non-co3d dataset"
 
         x = x.reshape(B*N_views, *x.shape[2:])
+        if depth_input is not None:
+            x = torch.cat((x, depth_input), dim=1)
+
         if self.cfg.data.origin_distances:
             const_offset = x[:, 3:, ...]
             x = x[:, :3, ...]
         else:
             const_offset = None
 
-        source_cameras_view_to_world = source_cameras_view_to_world.reshape(B*N_views, *source_cameras_view_to_world.shape[2:])
+        target_shape = [B * N_views, *source_cameras_view_to_world.shape[2:]]
+        if source_cameras_view_to_world.numel() == torch.tensor(target_shape).prod().item():
+            source_cameras_view_to_world = source_cameras_view_to_world.reshape(*target_shape)
         x = x.contiguous(memory_format=torch.channels_last)
 
         if self.cfg.model.network_with_offset:
@@ -780,11 +808,21 @@ class GaussianSplatPredictor(nn.Module):
         pos = torch.cat([pos, 
                          torch.ones((pos.shape[0], pos.shape[1], 1), device=pos.device, dtype=torch.float32)
                          ], dim=2)
+        
+        # Check if source_cameras_view_to_world has 4 dimensions
+        if source_cameras_view_to_world.dim() == 4:
+            # Squeeze the first two dimensions (batch and view dimensions)
+            source_cameras_view_to_world = source_cameras_view_to_world.squeeze(0).squeeze(0)  # Reduces to [4, 4]
+
+            # Expand to match the batch size of pos
+            source_cameras_view_to_world = source_cameras_view_to_world.expand(pos.shape[0], -1, -1)
+        
         pos = torch.bmm(pos, source_cameras_view_to_world)
         pos = pos[:, :, :3] / (pos[:, :, 3:] + 1e-10)
         
         out_dict = {
-            "xyz": pos, 
+            "xyz": pos,
+            "depth": self.flatten_vector(depth), 
             "rotation": self.flatten_vector(self.rotation_activation(rotation)),
             "features_dc": self.flatten_vector(features_dc).unsqueeze(2)
                 }
@@ -797,6 +835,11 @@ class GaussianSplatPredictor(nn.Module):
             out_dict["scaling"] = self.flatten_vector(scaling_out)
 
         assert source_cv2wT_quat is not None
+
+        if source_cv2wT_quat.shape == torch.Size([1, 1, 4]):
+            # repeat to match batch size (16)
+            source_cv2wT_quat = source_cv2wT_quat.repeat(B * N_views, 1, 1)
+
         source_cv2wT_quat = source_cv2wT_quat.reshape(B*N_views, *source_cv2wT_quat.shape[2:])
         out_dict["rotation"] = self.transform_rotations(out_dict["rotation"], 
                     source_cv2wT_quat=source_cv2wT_quat)

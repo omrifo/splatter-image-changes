@@ -186,7 +186,7 @@ def main(cfg: DictConfig):
                                 dim=2)
             else:
                 focals_pixels_pred = None
-                input_images = data["gt_images"][:, :cfg.data.input_images, ...]
+                input_images = torch.cat([data["gt_images"][:, :cfg.data.input_images, ...], data["depth_images"][:, :cfg.data.depth_images, ...].detach()], dim=2)
 
             gaussian_splats = gaussian_predictor(input_images,
                                                 data["view_to_world_transforms"][:, :cfg.data.input_images, ...],
@@ -216,6 +216,7 @@ def main(cfg: DictConfig):
             lpips_loss_sum = 0.0
             rendered_images = []
             gt_images = []
+            depth_images = []
             for b_idx in range(data["gt_images"].shape[0]):
                 # image at index 0 is training, remaining images are targets
                 # Rendering is done sequentially because gaussian rasterization code
@@ -237,6 +238,8 @@ def main(cfg: DictConfig):
                     rendered_images.append(image)
                     gt_image = data["gt_images"][b_idx, r_idx]
                     gt_images.append(gt_image)
+                    depth_image =  data["depth_images"][b_idx, r_idx].detach()
+                    depth_images.append(depth_image)
             rendered_images = torch.stack(rendered_images, dim=0)
             gt_images = torch.stack(gt_images, dim=0)
             # Loss computation
@@ -262,6 +265,14 @@ def main(cfg: DictConfig):
                 print("finished opt {} on process {}".format(iteration, fabric.global_rank))
 
             if cfg.opt.ema.use and fabric.is_global_zero:
+                for key, value in ema.ema_model.state_dict().items():
+                    # checking we have a tensor that needs reshaping
+                    if value.ndim == 4 and value.shape[1] == 128:  # Check for 128-channel tensors
+                        print(f"Before update - {key}: {value.shape}")
+                        value = value[:, :32, :, :]  # Reshape from 128 to 32 channels
+                        # Update the state_dict or directly modify the tensor
+                        ema.ema_model.state_dict()[key] = value
+                        print(f"after update - {key}: {value.shape}")
                 ema.update()
 
             if iteration % print_mod ==0:
@@ -309,11 +320,11 @@ def main(cfg: DictConfig):
                     if cfg.data.category == "hydrants" or cfg.data.category == "teddybears":
                         focals_pixels_pred = vis_data["focals_pixels"][:, :cfg.data.input_images, ...]
                         input_images = torch.cat([vis_data["gt_images"][:, :cfg.data.input_images, ...],
-                                                vis_data["origin_distances"][:, :cfg.data.input_images, ...]],
+                                                vis_data["origin_distances"][:, :cfg.data.input_images, ...].detach()],
                                                 dim=2)
                     else:
                         focals_pixels_pred = None
-                        input_images = vis_data["gt_images"][:, :cfg.data.input_images, ...]
+                        input_images = torch.cat([data["gt_images"][:, :cfg.data.input_images, ...],data["depth_images"][:, :cfg.data.depth_images, ...]], dim=2)
 
                     gaussian_splats_vis = gaussian_predictor(input_images,
                                                         vis_data["view_to_world_transforms"][:, :cfg.data.input_images, ...],
