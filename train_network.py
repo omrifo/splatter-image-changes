@@ -2,7 +2,6 @@ import glob
 import hydra
 import os
 import wandb
-
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -20,7 +19,8 @@ from eval import evaluate_dataset
 from gaussian_renderer import render_predicted
 from scene.gaussian_predictor import GaussianSplatPredictor
 from datasets.dataset_factory import get_dataset
-
+os.environ["TORCH_DISTRIBUTED_DEBUG"] = "detail"
+os.environ['HYDRA_FULL_ERROR'] = '1'
 
 @hydra.main(version_base=None, config_path='configs', config_name="default_config")
 def main(cfg: DictConfig):
@@ -99,6 +99,7 @@ def main(cfg: DictConfig):
             best_PSNR = 0.0
 
     if cfg.opt.ema.use and fabric.is_global_zero:
+        
         ema = EMA(gaussian_predictor, 
                   beta=cfg.opt.ema.beta,
                   update_every=cfg.opt.ema.update_every,
@@ -320,11 +321,11 @@ def main(cfg: DictConfig):
                     if cfg.data.category == "hydrants" or cfg.data.category == "teddybears":
                         focals_pixels_pred = vis_data["focals_pixels"][:, :cfg.data.input_images, ...]
                         input_images = torch.cat([vis_data["gt_images"][:, :cfg.data.input_images, ...],
-                                                vis_data["origin_distances"][:, :cfg.data.input_images, ...].detach()],
+                                                vis_data["origin_distances"][:, :cfg.data.input_images, ...]],
                                                 dim=2)
                     else:
                         focals_pixels_pred = None
-                        input_images = torch.cat([data["gt_images"][:, :cfg.data.input_images, ...],data["depth_images"][:, :cfg.data.depth_images, ...]], dim=2)
+                        input_images = torch.cat([data["gt_images"][:, :cfg.data.input_images, ...],data["depth_images"][:, :cfg.data.depth_images, ...].detach()], dim=2)
 
                     gaussian_splats_vis = gaussian_predictor(input_images,
                                                         vis_data["view_to_world_transforms"][:, :cfg.data.input_images, ...],
