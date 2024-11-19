@@ -242,7 +242,7 @@ def main(cfg: DictConfig):
                     depth_images.append(depth_image)
             rendered_images = torch.stack(rendered_images, dim=0)
             gt_images = torch.stack(gt_images, dim=0)
-            # Loss computation
+            
             l12_loss_sum = loss_fn(rendered_images, gt_images) 
             if cfg.opt.lambda_lpips != 0:
                 lpips_loss_sum = torch.mean(

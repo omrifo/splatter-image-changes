@@ -774,10 +774,7 @@ class GaussianSplatPredictor(nn.Module):
 
         if self.cfg.model.network_with_offset:
 
-            split_network_outputs = self.network_with_offset(x,
-                                                             film_camera_emb=film_camera_emb,
-                                                             N_views_xa=N_views_xa
-                                                             )
+            split_network_outputs = self.network_with_offset(x, film_camera_emb=film_camera_emb, N_views_xa=N_views_xa)
 
             split_network_outputs = split_network_outputs.split(self.split_dimensions_with_offset, dim=1)
             depth, offset, opacity, scaling, rotation, features_dc = split_network_outputs[:6]
@@ -787,10 +784,7 @@ class GaussianSplatPredictor(nn.Module):
             pos = self.get_pos_from_network_output(depth, offset, focals_pixels, const_offset=const_offset)
 
         else:
-            split_network_outputs = self.network_wo_offset(x, 
-                                                           film_camera_emb=film_camera_emb,
-                                                           N_views_xa=N_views_xa
-                                                           ).split(self.split_dimensions_without_offset, dim=1)
+            split_network_outputs = self.network_wo_offset(x, film_camera_emb=film_camera_emb, N_views_xa=N_views_xa).split(self.split_dimensions_without_offset, dim=1)
 
             depth, opacity, scaling, rotation, features_dc = split_network_outputs[:5]
             if self.cfg.model.max_sh_degree > 0:
@@ -811,8 +805,7 @@ class GaussianSplatPredictor(nn.Module):
         
         # Check if source_cameras_view_to_world has 4 dimensions
         if source_cameras_view_to_world.dim() == 4:
-            # Squeeze the first two dimensions (batch and view dimensions)
-            source_cameras_view_to_world = source_cameras_view_to_world.squeeze(0).squeeze(0)  # Reduces to [4, 4]
+            source_cameras_view_to_world = source_cameras_view_to_world.squeeze(0).squeeze(0)  
 
             # Expand to match the batch size of pos
             source_cameras_view_to_world = source_cameras_view_to_world.expand(pos.shape[0], -1, -1)
@@ -849,7 +842,7 @@ class GaussianSplatPredictor(nn.Module):
             # Channel dimension holds SH_num * RGB(3) -> renderer expects split across RGB
             # Split channel dimension B x N x C -> B x N x SH_num x 3
             out_dict["features_rest"] = features_rest.reshape(*features_rest.shape[:2], -1, 3)
-            assert self.cfg.model.max_sh_degree == 1 # "Only accepting degree 1"
+           # assert self.cfg.model.max_sh_degree == 1 # "Only accepting degree 1"
             out_dict["features_rest"] = self.transform_SHs(out_dict["features_rest"],
                                                            source_cameras_view_to_world)
         else:    

@@ -121,7 +121,6 @@ class SRNDataset(SharedDataset):
         intrin_path = self.intrins[index]
         example_id = os.path.basename(os.path.dirname(intrin_path))
 
-
         self.load_example_id(example_id, intrin_path)
         if self.dataset_name == "train":
             frame_idxs = torch.randperm(
@@ -134,7 +133,7 @@ class SRNDataset(SharedDataset):
             input_idxs = self.test_input_idxs
             
             frame_idxs = torch.cat([torch.tensor(input_idxs), 
-                                    torch.tensor([i for i in range(251) if i not in input_idxs])], dim=0)
+                                    torch.tensor([i for i in range(250) if i not in input_idxs])], dim=0)
              
         images_and_camera_poses = {
             "gt_images": self.all_rgbs[example_id][frame_idxs].clone(),
