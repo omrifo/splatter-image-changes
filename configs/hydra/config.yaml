@@ -1,0 +1,8 @@
+---
+run:
+  dir: /content/drive/MyDrive/Colab_Notebooks/computer_vision_project/experiments_out/2024-11-20/10-01-46
+sweep:
+  dir: /content/drive/MyDrive/Colab_Notebooks/computer_vision_project/experiments_out/2024-11-20/10-01-46
+  subdir: ${hydra.job.override_dirname}
+job:
+  chdir: True
