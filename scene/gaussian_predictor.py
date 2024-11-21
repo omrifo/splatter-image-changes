@@ -98,9 +98,9 @@ class Conv2d(torch.nn.Module):
                 elif x.shape[1] == 3:
                     conv = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=1, stride=1, padding=0, bias=False).to(x.device)
                     x = conv(x)
-                if(x.shape[1] == 32):
-                    expand_channels = nn.Conv2d(in_channels=32, out_channels=128, kernel_size=1).to(x.device)
-                    x = expand_channels(x)
+                # if(x.shape[1] == 32):
+                #     expand_channels = nn.Conv2d(in_channels=32, out_channels=128, kernel_size=1).to(x.device)
+                #     x = expand_channels(x)
     
                 x = torch.nn.functional.conv2d(x, w, padding=w_pad)
         if b is not None:
