@@ -98,9 +98,7 @@ class Conv2d(torch.nn.Module):
                 elif x.shape[1] == 3:
                     conv = nn.Conv2d(in_channels=3, out_channels=3, kernel_size=1, stride=1, padding=0, bias=False).to(x.device)
                     x = conv(x)
-                # if(x.shape[1] == 32):
-                #     expand_channels = nn.Conv2d(in_channels=32, out_channels=128, kernel_size=1).to(x.device)
-                #     x = expand_channels(x)
+                
     
                 x = torch.nn.functional.conv2d(x, w, padding=w_pad)
         if b is not None:
@@ -252,22 +250,22 @@ class UNetBlock(torch.nn.Module):
 
     def forward(self, x, emb=None, N_views_xa=1):
         orig = x
-         # added the next conv for depth update
+         
         
-        if(x.shape[1] ==128):
-            # Step 1: Apply a 1x1 convolution to reduce channels from 128 to 6
-            conv1x1 = nn.Conv2d(in_channels=128, out_channels=6, kernel_size=1).to(x.device)
-            reduced_tensor = conv1x1(x)  # Output shape will be [16, 6, 64, 64]
-            print("UNetBlock applied conv1x1, x shape is: ", x.shape)
+        # if(x.shape[1] ==128):
+        #     # Step 1: Apply a 1x1 convolution to reduce channels from 128 to 6
+        #     conv1x1 = nn.Conv2d(in_channels=128, out_channels=6, kernel_size=1).to(x.device)
+        #     reduced_tensor = conv1x1(x)  # Output shape will be [16, 6, 64, 64]
+        #     print("UNetBlock applied conv1x1, x shape is: ", x.shape)
 
-            # Step 2: Apply a grouped convolution (groups=2)
-            conv_grouped = nn.Conv2d(in_channels=6, out_channels=12, kernel_size=3, padding=1, groups=2).to(x.device)
-            x = conv_grouped(reduced_tensor)  # Output shape will be [16, 12, 64, 64]
-            print("UNetBlock applied conv_grouped, x shape is: ", x.shape)
+        #     # Step 2: Apply a grouped convolution (groups=2)
+        #     conv_grouped = nn.Conv2d(in_channels=6, out_channels=12, kernel_size=3, padding=1, groups=2).to(x.device)
+        #     x = conv_grouped(reduced_tensor)  # Output shape will be [16, 12, 64, 64]
+        #     print("UNetBlock applied conv_grouped, x shape is: ", x.shape)
 
-        #conv1x1 = torch.nn.Conv2d(in_channels=6, out_channels=12, kernel_size=(3,3), groups=2).to(x.device)
-        #x = conv1x1(x)  # Apply the conv layer to x
-        print("in UNET block forward after conv x.shape is: ", x.shape)
+        # #conv1x1 = torch.nn.Conv2d(in_channels=6, out_channels=12, kernel_size=(3,3), groups=2).to(x.device)
+        # #x = conv1x1(x)  # Apply the conv layer to x
+        # print("in UNET block forward after conv x.shape is: ", x.shape)
         
         
         x = self.conv0(silu(self.norm0(x)))
